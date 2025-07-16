@@ -1,0 +1,215 @@
+﻿@page "/InvoiceDetails"
+@using Dates.Models
+@using Radzen
+@inject Dates.Service.DataService DataService
+@inject NavigationManager Navigation
+@inject Supabase.Client SupabaseClient
+@inject IJSRuntime JS
+@inject DialogService DialogService
+@using Dates.Components.Layout
+
+<link href="css/InvoiceDetails.css" rel="stylesheet" />
+<Sidebar />
+
+<h3 class="page-title">📋 تفاصيل فواتير يوم @selectedDate?.ToString("yyyy-MM-dd")</h3>
+
+@if (filteredInvoices.Count == 0)
+{
+    <p class="no-invoices">لا توجد فواتير لهذا اليوم.</p>
+}
+else
+{
+    <div class="grid-wrapper">
+        @foreach (var invoice in filteredInvoices)
+        {
+            <div class="invoice-box">
+                <div class="info-item"><strong>📦 المنتج:</strong> @invoice.ProductType</div>
+                <div class="info-item"><strong>⚖️ الوزن:</strong> @invoice.WeightKilos كجم</div>
+                <div class="info-item"><strong>💵 السعر الكلي:</strong> @invoice.TotalPrice د.ل</div>
+                <div class="info-item"><strong>🏪 المحل:</strong> @invoice.Supplier</div>
+                <div class="info-item"><strong>📅 التاريخ:</strong> @invoice.PurchaseDate.ToString("yyyy-MM-dd")</div>
+                <div class="info-item">
+                    <strong>💳 الحالة:</strong>
+                    <span style="color:@(invoice.IsPaid ? "green" : "red"); font-weight:bold">
+                        @(invoice.IsPaid ? "✔ خالص" : "✘ غير خالص")
+                    </span>
+                </div>
+
+                <div class="action-buttons">
+                    <RadzenButton Text="✏️ تعديل"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Size="ButtonSize.Small"
+                                  Click="@(() => StartEdit(invoice))" />
+
+                    <RadzenButton Text="🗑 حذف"
+                                  ButtonStyle="ButtonStyle.Danger"
+                                  Size="ButtonSize.Small"
+                                  Click="@(() => ConfirmDelete(invoice))" />
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (selectedItem != null)
+{
+    <div class="edit-form mt-4">
+        <h4>✏️ تعديل الفاتورة</h4>
+
+        <EditForm Model="@selectedItem" OnValidSubmit="SaveEdit">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label>نوع المنتج:</label>
+                <InputText @bind-Value="selectedItem.ProductType" class="form-control input" />
+            </div>
+
+            <div class="mb-3">
+                <label>سعر الكيلو:</label>
+                <InputNumber @bind-Value="selectedItem.PricePerKilo" class="form-control input" @oninput="OnPriceOrWeightChanged" />
+            </div>
+
+            <div class="mb-3">
+                <label>الوزن (كجم):</label>
+                <InputNumber @bind-Value="selectedItem.WeightKilos" class="form-control input" @oninput="OnPriceOrWeightChanged" />
+            </div>
+
+            <div class="mb-3">
+                <label>عدد القوابي:</label>
+                <InputNumber @bind-Value="selectedItem.BoxCount" class="form-control input" />
+            </div>
+
+            <div class="mb-3">
+                <label>المحل:</label>
+                <InputText @bind-Value="selectedItem.Supplier" class="form-control input" />
+            </div>
+
+            <div class="mb-3">
+                <label>ملاحظات:</label>
+                <InputText @bind-Value="selectedItem.Notes" class="form-control input" />
+            </div>
+
+            <div class="mb-3 d-flex align-items-center">
+                <label class="me-2">الحالة:</label>
+                <InputCheckbox @bind-Value="selectedItem.IsPaid" />
+                <span class="mx-2">@((selectedItem.IsPaid) ? "✔ خالص" : "✘ غير خالص")</span>
+            </div>
+
+            <RadzenButton Text="💾 حفظ"
+                          ButtonStyle="ButtonStyle.Success"
+                          Size="ButtonSize.Medium"
+                          Click="SaveEdit" />
+
+            <RadzenButton Text="❌ إلغاء"
+                          ButtonStyle="ButtonStyle.Secondary"
+                          Size="ButtonSize.Medium"
+                          Style="margin-right:10px"
+                          Click="CancelEdit" />
+        </EditForm>
+    </div>
+}
+
+<RadzenButton Text="🔙 رجوع"
+              Click="@(() => Navigation.NavigateTo("/View"))"
+              ButtonStyle="ButtonStyle.Secondary"
+              Style="margin-top:25px;" />
+
+@code {
+    private List<DateFruitEntry> filteredInvoices = new();
+    private DateTime? selectedDate;
+    private DateFruitEntry? selectedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var dateParam = System.Web.HttpUtility.ParseQueryString(uri.Query).Get("date");
+
+        if (DateTime.TryParse(dateParam, out var parsedDate))
+        {
+            selectedDate = parsedDate;
+
+            var username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            var result = await SupabaseClient
+                .From<User>()
+                .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+                .Get();
+
+            var user = result.Models.FirstOrDefault();
+
+            if (user == null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            var all = await DataService.GetEntriesByUser(user.Id);
+
+            filteredInvoices = all
+                .Where(i => i.PurchaseDate.Date == parsedDate.Date)
+                .ToList();
+        }
+        else
+        {
+            Navigation.NavigateTo("/View");
+        }
+    }
+
+    private void StartEdit(DateFruitEntry item)
+    {
+        selectedItem = new DateFruitEntry
+            {
+                Id = item.Id,
+                ProductType = item.ProductType,
+                PricePerKilo = item.PricePerKilo,
+                WeightKilos = item.WeightKilos,
+                TotalPrice = item.TotalPrice,
+                BoxCount = item.BoxCount,
+                Supplier = item.Supplier,
+                Notes = item.Notes,
+                IsPaid = item.IsPaid,
+                UserId = item.UserId,
+                CreatedAt = item.CreatedAt,
+                PurchaseDate = item.PurchaseDate
+            };
+    }
+
+    private void CancelEdit() => selectedItem = null;
+
+    private async Task SaveEdit()
+    {
+        if (selectedItem != null)
+        {
+            selectedItem.TotalPrice = selectedItem.PricePerKilo * selectedItem.WeightKilos;
+            await SupabaseClient.From<DateFruitEntry>().Update(selectedItem);
+            var index = filteredInvoices.FindIndex(x => x.Id == selectedItem.Id);
+            if (index >= 0)
+                filteredInvoices[index] = selectedItem;
+            selectedItem = null;
+        }
+    }
+
+    private async Task ConfirmDelete(DateFruitEntry item)
+    {
+        bool? confirmed = await DialogService.Confirm("هل أنت متأكد من حذف هذه الفاتورة؟", "تأكيد الحذف");
+        if (confirmed == true)
+        {
+            await SupabaseClient.From<DateFruitEntry>().Delete(item);
+            filteredInvoices.Remove(item);
+        }
+    }
+
+    private void OnPriceOrWeightChanged(ChangeEventArgs e)
+    {
+        if (selectedItem != null)
+        {
+            selectedItem.TotalPrice = selectedItem.PricePerKilo * selectedItem.WeightKilos;
+        }
+    }
+}

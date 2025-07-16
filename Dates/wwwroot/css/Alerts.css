@@ -1,0 +1,53 @@
+﻿.alerts-container {
+    margin-right: 280px;
+    padding: 30px;
+    direction: rtl;
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.alert-card {
+    background-color: #fff5f5;
+    border-right: 6px solid #e74c3c;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    color: #c0392b;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: 0.3s;
+}
+
+    .alert-card:hover {
+        background-color: #ffeaea;
+        transform: translateY(-2px);
+    }
+
+.status-text {
+    font-weight: bold;
+    color: #e74c3c;
+    margin-top: 10px;
+}
+
+.no-alerts {
+    font-size: 18px;
+    color: #28a745;
+    font-weight: bold;
+    margin-top: 30px;
+}
+
+/* دعم الجوال */
+@media (max-width: 768px) {
+    .alerts-container {
+        margin-right: 0;
+        padding: 20px;
+    }
+
+    .alert-card {
+        font-size: 14px;
+        padding: 15px;
+    }
+}

@@ -1,0 +1,77 @@
+﻿@page "/Alerts"
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject Supabase.Client SupabaseClient
+@using Dates.Models
+@using Dates.Components.Layout
+
+<Sidebar NotificationCount="@unpaidCount" />
+
+<link href="css/Alert.css" rel="stylesheet" />
+<link href="css/site.css rel="stylesheet" />
+
+<div class="alerts-container">
+    <h2 class="greeting">@greetingMessage</h2>
+
+    @if (unpaidCount == 0)
+    {
+        <p class="no-alerts">✅ لا توجد فواتير بحاجة إلى تنبيه.</p>
+    }
+    else
+    {
+        <div class="alerts-list">
+            @* ✅ تصحيح الاسم هنا *@
+            @foreach (var invoice in unpaidInvoices)
+            {
+                <div class="alert-card">
+                    <p><strong>📅 التاريخ:</strong> @invoice.PurchaseDate.ToShortDateString()</p>
+                    <p><strong>💰 الإجمالي:</strong> @invoice.TotalPrice</p>
+                    <p><strong>📦 المنتج:</strong> @invoice.ProductType</p>
+                    <p class="status-text">🚨 لم يتم الدفع بعد</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+
+@code {
+    private int unpaidCount = 0;
+    private string greetingMessage = "";
+    private string? username;
+    private List<DateFruitEntry> unpaidInvoices = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+
+        var now = DateTime.Now.Hour;
+        greetingMessage = now < 12 ? $"☀️ صباح الخير، {username}" : $"🌙 مساء الخير، {username}";
+
+        var userResult = await SupabaseClient
+            .From<User>()
+            .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+            .Get();
+
+        var user = userResult.Models.FirstOrDefault();
+
+        if (user != null)
+        {
+            // ✅ نجلب كل الفواتير الخاصة بالمستخدم
+            var allInvoicesResult = await SupabaseClient
+                .From<DateFruitEntry>()
+                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, user.Id.ToString())
+                .Get();
+
+            // ✅ نفلتر الفواتير غير المدفوعة داخل C#
+            unpaidInvoices = allInvoicesResult.Models
+                .Where(i => Convert.ToBoolean(i.GetType().GetProperty("IsPaid")?.GetValue(i) ?? true) == false)
+                .ToList();
+
+            unpaidCount = unpaidInvoices.Count;
+
+            // ✅ حفظ عدد التنبيهات
+            await JS.InvokeVoidAsync("sessionStorage.setItem", "alertsCount", unpaidCount.ToString());
+        }
+    }
+}

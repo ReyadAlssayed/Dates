@@ -1,0 +1,13 @@
+﻿@using Dates.Components.Layout
+@inherits LayoutComponentBase
+
+<link href="css/Sidebar.css" rel="stylesheet" />
+<RadzenDialog />
+
+
+<div class="layout-container">
+    <Sidebar />
+    <div class="page-content">
+        @Body
+    </div>
+</div>

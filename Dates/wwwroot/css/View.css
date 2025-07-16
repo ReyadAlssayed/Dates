@@ -1,0 +1,171 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+:root {
+    --main-color: #3f51b5;
+    --product-tamar: #795548;
+    --product-other: #009688;
+    --bg-color: #f2f4f8;
+    --card-bg: #ffffff;
+    --text-dark: #222;
+    --text-light: #444;
+    --shadow: rgba(0, 0, 0, 0.07);
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 0;
+    direction: rtl;
+}
+
+/* عنوان الصفحة */
+.page-title {
+    text-align: center;
+    color: var(--main-color);
+    font-size: 28px;
+    margin: 30px 0 40px;
+    font-weight: bold;
+}
+
+/* عنوان التاريخ */
+.group-title {
+    color: var(--text-dark);
+    margin: 20px 30px 10px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* شبكة البطاقات */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    padding: 20px 30px;
+}
+
+/* البطاقة */
+.invoice-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--shadow);
+    padding: 20px;
+    transition: transform 0.3s ease;
+    animation: fadeSlideIn 0.7s ease forwards;
+    opacity: 0;
+    transform: translateY(40px);
+    border-right: 4px solid #3f51b5;
+    position: relative;
+}
+
+    .invoice-card:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    .invoice-card:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .invoice-card:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+    .invoice-card:nth-child(4) {
+        animation-delay: 0.4s;
+    }
+    /* أضف أكثر إذا احتجت */
+
+    .invoice-card[data-type="تمر"] {
+        border-right-color: var(--product-tamar);
+    }
+
+    .invoice-card[data-type="غير تمر"] {
+        border-right-color: var(--product-other);
+    }
+
+    .invoice-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .invoice-card p {
+        margin: 10px 0;
+        font-size: 16px;
+        color: var(--text-light);
+        line-height: 1.6;
+    }
+
+    .invoice-card strong {
+        color: var(--text-dark);
+    }
+
+    .invoice-card button {
+        margin-top: 15px;
+        width: 100%;
+        font-weight: bold;
+        font-size: 15px;
+    }
+
+/* الفلتر */
+.filter-bar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+    .filter-bar label {
+        font-weight: bold;
+        color: #333;
+        margin-right: 5px;
+    }
+
+    .filter-bar select {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 15px;
+    }
+
+/* حركة البطاقات */
+@keyframes fadeSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* استجابة للموبايل */
+@media (max-width: 600px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+        padding: 10px 15px;
+        gap: 15px;
+    }
+
+    .invoice-card {
+        padding: 15px;
+        font-size: 14px;
+    }
+
+        .invoice-card p {
+            font-size: 14px;
+        }
+
+    .group-title {
+        font-size: 18px;
+        margin: 15px;
+    }
+
+    .page-title {
+        font-size: 22px;
+        margin: 20px 0 30px;
+    }
+}

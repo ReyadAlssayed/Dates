@@ -1,0 +1,80 @@
+﻿.help-container {
+    margin-right: 200px;
+    padding: 30px;
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    background-color: #f9f9f9;
+    min-height: 100vh;
+}
+
+.username-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.main-title {
+    font-size: 26px;
+    font-weight: bold;
+    color: #3f51b5;
+    margin-bottom: 25px;
+}
+
+.guidelines {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    font-size: 17px;
+    color: #333;
+    line-height: 2.2;
+}
+
+    .guidelines li {
+        counter-increment: step;
+        position: relative;
+        padding: 15px 20px 15px 15px;
+        margin-bottom: 15px;
+        border-right: 5px solid #FFA726; /* لون برتقالي */
+        background-color: #fdfdfd;
+        border-radius: 8px;
+    }
+
+        .guidelines li::before {
+            content: counter(step) ".";
+            position: absolute;
+            right: -35px;
+            top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFA726;
+        }
+
+/* ✅ متجاوبة */
+@media (max-width: 768px) {
+    .help-container {
+        margin-right: 0;
+        padding: 20px;
+    }
+
+    .main-title {
+        font-size: 22px;
+    }
+
+    .username-title {
+        font-size: 18px;
+    }
+
+    .guidelines {
+        font-size: 15px;
+        padding: 20px;
+    }
+
+        .guidelines li::before {
+            right: -25px;
+        }
+}

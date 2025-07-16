@@ -1,0 +1,114 @@
+﻿@page "/Private"
+@using Dates.Models
+@using Dates.Components.Layout
+@inject Dates.Service.DataService DataService
+@inject Supabase.Client SupabaseClient
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<link href="css/Private.css" rel="stylesheet" />
+<link href="css/site.css" rel="stylesheet" />
+
+<Sidebar />
+
+@if (isLoading)
+{
+    <div class="loader"></div>
+}
+else
+{
+    <h3 class="page-title">📊 الإحصائيات العامة</h3>
+
+    <div class="stats-summary">
+        <div class="stat-card">📄 عدد الفواتير: @totalCount</div>
+        <div class="stat-card">💰 إجمالي المبالغ: @totalAmount د.ل</div>
+        <div class="stat-card">✅ عدد الفواتير الخالصة: @paidCount</div>
+        <div class="stat-card">❌ عدد الفواتير غير الخالصة: @unpaidCount</div>
+    </div>
+
+    <RadzenButton Text="📈 عرض المنحنى الشهري" Click="ShowChart"
+                  Style="margin-top: 20px; background-color: #3f51b5; color: white; font-weight: bold;" />
+
+    @if (showChart)
+    {
+        <div class="chart-wrapper">
+            <RadzenChart Style="height: 400px; width: 100%;">
+                <RadzenCategoryAxis Padding="10">
+                    <RadzenCategoryScale Categories="@monthlyData.Keys" />
+                </RadzenCategoryAxis>
+
+                <RadzenValueAxis>
+                    <RadzenNumericScale />
+                </RadzenValueAxis>
+
+                <RadzenLineSeries Data="@monthlyPoints"
+                                  CategoryProperty="Label"
+                                  ValueProperty="Value"
+                                  Title="إجمالي كل شهر" />
+            </RadzenChart>
+        </div>
+    }
+}
+
+@code {
+    private int totalCount;
+    private decimal totalAmount;
+    private int paidCount;
+    private int unpaidCount;
+    private bool showChart = false;
+    private bool isLoading = true;
+
+    private Dictionary<string, decimal> monthlyData = new();
+    private List<MonthlyPoint> monthlyPoints = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var result = await SupabaseClient
+            .From<User>()
+            .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+            .Get();
+
+        var user = result.Models.FirstOrDefault();
+        if (user == null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var all = await DataService.GetEntriesByUser(user.Id);
+
+        totalCount = all.Count;
+        totalAmount = all.Sum(i => i.TotalPrice);
+        paidCount = all.Count(i => i.IsPaid);
+        unpaidCount = all.Count(i => !i.IsPaid);
+
+        monthlyData = all
+            .GroupBy(i => i.PurchaseDate.ToString("yyyy-MM"))
+            .OrderBy(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.TotalPrice));
+
+        monthlyPoints = monthlyData
+            .Select(kvp => new MonthlyPoint { Label = kvp.Key, Value = kvp.Value })
+            .ToList();
+
+        isLoading = false;
+    }
+
+    void ShowChart()
+    {
+        showChart = true;
+    }
+
+    public class MonthlyPoint
+    {
+        public string Label { get; set; }
+        public decimal Value { get; set; }
+    }
+}

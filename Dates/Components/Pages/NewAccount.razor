@@ -1,0 +1,95 @@
+﻿@page "/NewAccount"
+@inject Supabase.Client SupabaseClient
+@inject NavigationManager Navigation
+@using Dates.Models
+@using Dates.Components.Layout
+
+<link href="css/newAccount.css" rel="stylesheet" />
+<link href="css/site.css rel="stylesheet" />
+
+<Sidebar /> <!-- ✅ هذا السطر هو المطلوب -->
+
+<div class="invoice-container">
+    <!-- ✅ القسم الأيسر -->
+    <div class="invoice-form-section">
+        <h2 class="section-title">إنشاء حساب في <span class="brand-name">تطبيق إدارتك</span></h2>
+
+        <EditForm Model="@model" OnValidSubmit="HandleRegister" class="form-body">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="input-group">
+                <InputText @bind-Value="model.Username" class="input" placeholder="اسم المستخدم" />
+                <ValidationMessage For="@(() => model.Username)" class="validation" />
+            </div>
+
+            <div class="input-group">
+                <InputText @bind-Value="model.ProjectType" class="input" placeholder="نوع المشروع (مثال: تمر / غير تمر)" />
+                <ValidationMessage For="@(() => model.ProjectType)" class="validation" />
+            </div>
+
+            <div class="input-group">
+                <InputText @bind-Value="model.PasswordHash" type="password" class="input" placeholder="كلمة المرور" />
+                <ValidationMessage For="@(() => model.PasswordHash)" class="validation" />
+            </div>
+
+            <button type="submit" class="btn liquid">
+                <span class="btn-label">إنشاء الحساب</span>
+            </button>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <p class="success-message">@successMessage</p>
+                <button class="btn login-btn" @onclick="GoToLogin">🔐 الرجوع إلى تسجيل الدخول</button>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <p class="error-message">@errorMessage</p>
+            }
+        </EditForm>
+    </div>
+
+    <div class="invoice-image-section" style="background-image: url('https://images.pexels.com/photos/590011/pexels-photo-590011.jpeg');">
+    </div>
+</div>
+
+@code {
+    private User model = new();
+    private string? successMessage;
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var result = await SupabaseClient
+                .From<User>()
+                .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, model.Username)
+                .Get();
+
+            if (result.Models.Count > 0)
+            {
+                errorMessage = "⚠️ هذا المستخدم مسجل مسبقًا.";
+                successMessage = null;
+                return;
+            }
+
+            model.Id = Guid.NewGuid();
+            model.CreatedAt = DateTime.UtcNow;
+
+            await SupabaseClient.From<User>().Insert(model);
+            successMessage = "✅ تم إنشاء الحساب بنجاح.";
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "حدث خطأ: " + ex.Message;
+        }
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

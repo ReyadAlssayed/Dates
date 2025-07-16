@@ -1,0 +1,98 @@
+﻿@page "/"
+@inject Supabase.Client SupabaseClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@using Dates.Models
+@using System.ComponentModel.DataAnnotations
+
+<link href="css/Login.css" rel="stylesheet" />
+
+<video autoplay muted loop playsinline id="bgVideo">
+    <source src="Video/1350205-hd_1920_1080_30fps.mp4" type="video/mp4" />
+</video>
+
+<div class="login-wrapper">
+    <div class="form-container">
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <h2>تسجيل الدخول</h2>
+
+            <RadzenTextBox @bind-Value="loginModel.Username"
+                           Placeholder="اسم الستخدم"
+                           Name="Username"
+                           Class="input-field" />
+            <ValidationMessage For="@(() => loginModel.Username)" />
+
+            <RadzenTextBox @bind-Value="loginModel.Password"
+                           Placeholder="كلمة المرور"
+                           Name="Password"
+                           Type="password"
+                           Class="input-field" />
+            <ValidationMessage For="@(() => loginModel.Password)" />
+
+            <RadzenButton Text="دخول"
+                          Type="Submit"
+                          Class="login-btn"/>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="validation-message" style="margin-top: 10px;">
+                    @errorMessage
+                </div>
+            }
+
+            <div style="margin-top: 10px; text-align:center;">
+                <a @onclick="NavigateToRegister" style="cursor:pointer;">
+                    ليس لديك حساب؟ إنشاء حساب جديد
+                </a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var result = await SupabaseClient
+                .From<User>()
+                .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, loginModel.Username)
+                .Filter("password_hash", Supabase.Postgrest.Constants.Operator.Equals, loginModel.Password)
+                .Single();
+
+            if (result != null)
+            {
+                await JS.InvokeVoidAsync("sessionStorage.setItem", "username", loginModel.Username);
+                NavigationManager.NavigateTo("/newaccount");
+            }
+            else
+            {
+                errorMessage = "❌ اسم المستخدم أو كلمة المرور غير صحيحة.";
+            }
+        }
+        catch
+        {
+            errorMessage = "⚠️ حدث خطأ أثناء الاتصال.";
+        }
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/NewAccount");
+    }
+  
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "اسم المستخدم مطلوب")]
+        public string Username { get; set; }
+
+        [Required(ErrorMessage = "كلمة المرور مطلوبة")]
+        public string Password { get; set; }
+    }
+}

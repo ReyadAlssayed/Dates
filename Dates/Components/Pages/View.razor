@@ -1,0 +1,84 @@
+﻿@page "/View"
+@using Dates.Models
+@using Radzen
+@inject Dates.Service.DataService DataService
+@inject NavigationManager Navigation
+@inject Supabase.Client SupabaseClient
+@inject IJSRuntime JS
+@using Dates.Components.Layout
+
+<link href="css/View.css" rel="stylesheet" />
+<link href="css/site.css rel="stylesheet" />
+
+<Sidebar />
+
+<h2 class="page-title">📅 فواتيري حسب السنوات</h2>
+
+@if (groupedInvoices.Count == 0)
+{
+    <p style="text-align:center">لا توجد فواتير حتى الآن.</p>
+}
+
+@foreach (var group in groupedInvoices)
+{
+    <div class="invoice-group">
+        <h4 class="group-title">📆 @group.Key</h4>
+
+        <div class="card-grid">
+            @foreach (var invoice in group.Value)
+            {
+                <div class="invoice-card" data-type="@invoice.ProductType">
+                    <p><strong>📦 المنتج:</strong> <span style="color: var(--main-color); font-weight: bold;">@invoice.ProductType</span></p>
+                    <p><strong>💰 السعر الكلي:</strong> @invoice.TotalPrice د.ل</p>
+                    <p><strong>🏬 المحل:</strong> @invoice.Supplier</p>
+                    <p><strong>🗓 تاريخ الشراء:</strong> @invoice.PurchaseDate.ToString("yyyy-MM-dd")</p>
+
+                    <RadzenButton Text="📋 تفاصيل"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(() => GoToDetailsPage(invoice.PurchaseDate))" />
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private Dictionary<int, List<DateFruitEntry>> groupedInvoices = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var result = await SupabaseClient
+            .From<User>()
+            .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+            .Get();
+
+        var user = result.Models.FirstOrDefault();
+
+        if (user == null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var all = await DataService.GetEntriesByUser(user.Id);
+
+        groupedInvoices = all
+            .GroupBy(i => i.PurchaseDate.Year)
+            .OrderByDescending(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private void GoToDetailsPage(DateTime date)
+    {
+        var query = $"/InvoiceDetails?date={date:yyyy-MM-dd}";
+        Navigation.NavigateTo(query);
+    }
+}

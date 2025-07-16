@@ -1,0 +1,75 @@
+﻿@using Microsoft.AspNetCore.Components
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<button class="menu-toggle" @onclick="ToggleSidebar">☰</button>
+
+@if (isLoggedIn)
+{
+    <div class="sidebar @(isSidebarOpen ? "open" : "closed")">
+        <img src="https://th.bing.com/th/id/OIP.4Gj06n012zhTbK-XpipivwHaEo?w=242&h=180" class="sidebar-avatar" />
+
+        <h3 class="sidebar-title">تطبيق إدارتك</h3>
+        <p class="sidebar-username">@usernameDisplay</p>
+
+        <ul class="nav-list">
+            <li><NavLink href="/Add" class="nav-link" @onclick="CloseSidebar">إضافة فاتورة</NavLink></li>
+            <li><NavLink href="/View" class="nav-link" @onclick="CloseSidebar">كل الفواتير</NavLink></li>
+            <li><NavLink href="/Private" class="nav-link" @onclick="CloseSidebar">الإحصائيات الأسبوعية</NavLink></li>
+            <li>
+                <NavLink href="/Alerts" class="nav-link" @onclick="CloseSidebar">
+                    التنبيهات
+                    @if (alertsCount > 0)
+                    {
+                        <span class="notification-badge">@alertsCount</span>
+                    }
+                    else
+                    {
+                        <span class="notification-check">✔</span>
+                    }
+                </NavLink>
+            </li>
+                <li><NavLink href="/Help" class="nav-link" @onclick="CloseSidebar">إرشادات سريعة</NavLink></li>
+            <li><NavLink href="/NewAccount" class="nav-link" @onclick="CloseSidebar">حساب جديد</NavLink></li>
+            <li><a class="nav-link" @onclick="Logout">🚪 تسجيل الخروج</a></li>
+        </ul>
+    </div>
+}
+
+@code {
+    private bool isLoggedIn = false;
+    private string? usernameDisplay;
+    private int alertsCount = 0;
+    private bool isSidebarOpen = false;
+
+    [Parameter] public int? NotificationCount { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+            isLoggedIn = !string.IsNullOrWhiteSpace(username);
+            usernameDisplay = username;
+
+            if (NotificationCount.HasValue)
+                alertsCount = NotificationCount.Value;
+            else
+            {
+                var countString = await JS.InvokeAsync<string>("sessionStorage.getItem", "alertsCount");
+                alertsCount = int.TryParse(countString, out var count) ? count : 0;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleSidebar() => isSidebarOpen = !isSidebarOpen;
+    private void CloseSidebar() => isSidebarOpen = false;
+
+    private async Task Logout()
+    {
+        await JS.InvokeVoidAsync("sessionStorage.clear");
+        NavigationManager.NavigateTo("/");
+    }
+}

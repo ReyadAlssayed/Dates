@@ -1,0 +1,127 @@
+﻿@page "/Add"
+@using Dates.Components.Layout
+@using Dates.Models
+@inject Dates.Service.DataService DataService
+@inject NavigationManager NavigationManager
+@inject Supabase.Client SupabaseClient
+@inject IJSRuntime JS
+
+<link href="css/Add.css" rel="stylesheet" />
+<link href="css/site.css" rel="stylesheet" />
+
+<Sidebar />
+
+<div class="container">
+    <h3>🧾 إضافة فاتورة جديدة</h3>
+
+    <EditForm Model="@entry" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <label>📦 نوع المنتج:</label>
+        <InputText @bind-Value="entry.ProductType" class="input" disabled />
+
+        <label>⚖️ الوزن بالكيلو:</label>
+        <InputNumber @bind-Value="entry.WeightKilos" class="input" @oninput="RecalculateTotal" />
+
+        <label>📦 عدد الصناديق (اختياري):</label>
+        <InputNumber @bind-Value="entry.BoxCount" class="input" />
+
+        <label>💵 السعر للكيلو:</label>
+        <InputNumber @bind-Value="entry.PricePerKilo" class="input" @oninput="RecalculateTotal" />
+
+        <label>📊 الإجمالي:</label>
+        <InputNumber @bind-Value="entry.TotalPrice" class="input" disabled />
+
+        <label>🏪 اسم المورد / المحل:</label>
+        <InputText @bind-Value="entry.Supplier" class="input" />
+
+        <!-- ✅ التاريخ وزر اليوم -->
+        <div class="row-line">
+            <div style="flex: 1;">
+                <label>📅 تاريخ الشراء:</label>
+                <InputDate @bind-Value="entry.PurchaseDate" class="input" />
+            </div>
+            <RadzenButton Text="اليوم" Click="@SetTodayDate" Style="height: 43px; width: 80px; margin-top: 24px; background-color: #3f51b5; color: white; border-radius: 8px;" />
+        </div>
+
+        <!-- ✅ هل تم الدفع -->
+        <div class="row-line">
+            <label class="paid-label">💳 هل تم الدفع؟</label>
+            <input type="checkbox" @bind="entry.IsPaid" style="width: 20px; height: 20px;" />
+        </div>
+
+        <!-- ✅ الملاحظات -->
+        <label>📝 ملاحظاتك الشخصية:</label>
+        <InputTextArea @bind-Value="entry.Notes" class="input" placeholder="@placeholderText" />
+
+        <button type="submit" class="btn-save">💾 حفظ الفاتورة</button>
+
+        @if (showSuccess)
+        {
+                <div class="alert-success">✅ تم حفظ الفاتورة بنجاح.</div>
+        }
+    </EditForm>
+</div>
+
+@code {
+    private DateFruitEntry entry = new();
+    private bool showSuccess = false;
+    private User? user;
+    private string? placeholderText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        var result = await SupabaseClient
+            .From<User>()
+            .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+            .Get();
+
+        user = result.Models.FirstOrDefault();
+
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        entry.ProductType = user.ProjectType;
+
+        placeholderText = $"مرحبًا {user.Username}، إذا كان لديك ملاحظة لنفسك يمكنك كتابتها هنا.";
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        entry.UserId = user.Id;
+        entry.TotalPrice = entry.PricePerKilo * entry.WeightKilos;
+        entry.CreatedAt = DateTime.UtcNow;
+
+        await DataService.AddDateFruitEntryAsync(entry);
+        showSuccess = true;
+        entry = new() { ProductType = user.ProjectType };
+    }
+
+    private void RecalculateTotal(ChangeEventArgs e)
+    {
+        entry.TotalPrice = entry.PricePerKilo * entry.WeightKilos;
+    }
+
+    private void SetTodayDate()
+    {
+        entry.PurchaseDate = DateTime.Today;
+    }
+}

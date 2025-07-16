@@ -1,0 +1,122 @@
+﻿:root {
+    --main-color: #3f51b5;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    margin: 0;
+}
+
+/* زر القائمة */
+.menu-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    background-color: var(--main-color);
+    color: white;
+    font-size: 20px;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* الشريط الجانبي */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 60%;
+    max-width: 300px;
+    background-color: #f7f7f7;
+    border-left: 3px solid var(--main-color);
+    box-shadow: -2px 0 6px rgba(0,0,0,0.1);
+    padding: 25px 20px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1500;
+    transition: transform 0.3s ease-in-out;
+}
+
+    .sidebar.open {
+        display: flex;
+        transform: translateX(0);
+    }
+
+    .sidebar.closed {
+        display: none;
+    }
+
+/* صورة الحساب */
+.sidebar-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+/* عنوان */
+.sidebar-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.sidebar-username {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 20px;
+}
+
+/* القائمة */
+.nav-list {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+}
+
+    .nav-list li {
+        margin: 10px 0;
+    }
+
+.nav-link {
+    display: block;
+    padding: 12px 14px;
+    background-color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+    .nav-link:hover {
+        background-color: #eef3ff;
+        color: var(--main-color);
+    }
+
+/* إشعارات */
+.notification-badge,
+.notification-check {
+    font-size: 12px;
+    margin-right: 6px;
+    padding: 3px 6px;
+    border-radius: 50%;
+    font-weight: bold;
+    color: white;
+}
+
+.notification-badge {
+    background-color: #e74c3c;
+}
+
+.notification-check {
+    background-color: #28a745;
+}
